@@ -22,6 +22,14 @@ public class User {
     private LocalDate birthday;
     private Set<Long> friends = new HashSet<>();
     private Set<Long> likedFilms = new HashSet<>();
+
+    public void addLike(Long filmId) {
+        likedFilms.add(filmId);
+    }
+
+    public void removeLike(Long filmId) {
+        likedFilms.remove(filmId);
+    }
 }
 
 

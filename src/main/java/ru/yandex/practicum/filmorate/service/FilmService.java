@@ -10,6 +10,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -25,6 +26,10 @@ public class FilmService {
     }
 
     public Film create(Film film) {
+        if (film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
+            log.error("Дата релиза фильма раньше 28 декабря 1895 года");
+            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года");
+        }
         return filmStorage.create(film);
     }
 
@@ -37,7 +42,7 @@ public class FilmService {
                 .orElseThrow(() -> new NotFoundException("Пользваотель не найден"));
         Film film = filmStorage.findById(filmId)
                 .orElseThrow(() -> new NotFoundException("Фильм не найден"));
-        user.getLikedFilms().add(filmId);
+        user.addLike(filmId);
         film.addLike();
         filmStorage.updateLikes(film);
         userStorage.updateLikes(user);
@@ -51,7 +56,7 @@ public class FilmService {
         Film film = filmStorage.findById(filmId)
                 .orElseThrow(() -> new NotFoundException("Фильм не найден"));
         if (user.getLikedFilms().contains(filmId)) {
-            user.getLikedFilms().remove(filmId);
+            user.removeLike(filmId);
             film.removeLike();
             filmStorage.updateLikes(film);
             userStorage.updateLikes(user);
