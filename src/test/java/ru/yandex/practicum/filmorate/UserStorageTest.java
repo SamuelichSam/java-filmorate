@@ -22,7 +22,7 @@ public class UserStorageTest {
     private final UserDbStorageImpl userStorage;
 
     @Test
-    public void FindAllUsersTest() {
+    public void findAllUsersTest() {
         User user1 = new User(null, "email1@email.com", "userLogin1",
                 "user1", LocalDate.of(1985, 11, 11));
         User user2 = new User(null, "email2@email.com", "userLogin2",
