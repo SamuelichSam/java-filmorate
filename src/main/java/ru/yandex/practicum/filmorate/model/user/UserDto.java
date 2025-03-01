@@ -4,7 +4,7 @@ import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
 
-public record UserDto (
+public record UserDto(
     Long id,
     @Email(message = "Электронная почта не может быть пустой и должна содержать символ @ ")
     String email,

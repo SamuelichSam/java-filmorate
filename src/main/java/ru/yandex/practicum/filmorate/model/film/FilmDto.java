@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 
-public record FilmDto (
+public record FilmDto(
     Long id,
     @NotNull(message = "Название фильма не может быть пустым")
     @NotBlank(message = "Название фильма не может быть пустым")
