@@ -5,25 +5,27 @@ import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.model.genre.Genre;
 import ru.yandex.practicum.filmorate.model.genre.GenreDto;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FilmMapper {
     public static Film toFilm(FilmDto filmDto) {
         var film = new Film();
-        film.setId(filmDto.getId());
-        film.setName(filmDto.getName());
-        film.setDescription(filmDto.getDescription());
-        film.setReleaseDate(filmDto.getReleaseDate());
-        film.setDuration(filmDto.getDuration());
-        film.setMpa(filmDto.getMpa());
+        film.setId(filmDto.id());
+        film.setName(filmDto.name());
+        film.setDescription(filmDto.description());
+        film.setReleaseDate(filmDto.releaseDate());
+        film.setDuration(filmDto.duration());
+        film.setMpa(filmDto.mpa());
         if (film.getGenres() != null) {
-            List<Genre> genres = filmDto.getGenres()
+            List<Genre> genres = filmDto.genres()
                     .stream()
                     .map(genreDto -> {
                         Genre genre = new Genre();
-                        genre.setId(genreDto.getId());
+                        genre.setId(genreDto.id());
                         return genre;
                     })
                     .collect(Collectors.toList());
@@ -34,8 +36,25 @@ public class FilmMapper {
     }
 
     public static FilmDto toDto(Film film) {
-        FilmDto dto = new FilmDto();
-        dto.setId(film.getId());
+        List<GenreDto> genresDto = Optional.ofNullable(film.getGenres())
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .map(genre -> new GenreDto(genre.getId(), genre.getName()))
+                .toList();
+        return new FilmDto(
+                film.getId(),
+                film.getName(),
+                film.getDescription(),
+                film.getReleaseDate(),
+                film.getDuration(),
+                film.getMpa(),
+                genresDto
+        );
+    }
+}
+
+
+        /*dto.setId(film.getId());
         dto.setName(film.getName());
         dto.setDescription(film.getDescription());
         dto.setReleaseDate(film.getReleaseDate());
@@ -56,3 +75,4 @@ public class FilmMapper {
         return dto;
     }
 }
+*/

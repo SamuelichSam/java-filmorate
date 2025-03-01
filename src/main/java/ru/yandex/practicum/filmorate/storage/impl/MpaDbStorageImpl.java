@@ -4,6 +4,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.mpa.Mpa;
+import ru.yandex.practicum.filmorate.model.mpa.MpaDto;
+import ru.yandex.practicum.filmorate.model.mpa.MpaMapper;
 import ru.yandex.practicum.filmorate.storage.MpaStorage;
 
 import java.util.List;
@@ -26,13 +28,17 @@ public class MpaDbStorageImpl extends BaseDbStorage<Mpa> implements MpaStorage {
     }
 
     @Override
-    public List<Mpa> getAll() {
-        return findMany(FIND_ALL_QUERY);
+    public List<MpaDto> getAll() {
+        return findMany(FIND_ALL_QUERY)
+                .stream()
+                .map(MpaMapper::toDto)
+                .toList();
     }
 
     @Override
-    public Optional<Mpa> getMpaById(Long id) {
-        return findOne(FIND_BY_ID_QUERY, id);
+    public Optional<MpaDto> getMpaById(Long id) {
+        return findOne(FIND_BY_ID_QUERY, id)
+                .map(MpaMapper::toDto);
     }
 
     @Override

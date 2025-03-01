@@ -4,11 +4,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.film.Film;
-import ru.yandex.practicum.filmorate.model.genre.Genre;
+import ru.yandex.practicum.filmorate.model.film.FilmDto;
+import ru.yandex.practicum.filmorate.model.film.FilmMapper;
+import ru.yandex.practicum.filmorate.model.genre.GenreDto;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Repository
 public class FilmDbStorageImpl extends BaseDbStorage<Film> implements FilmStorage {
@@ -49,7 +52,8 @@ public class FilmDbStorageImpl extends BaseDbStorage<Film> implements FilmStorag
     }
 
     @Override
-    public Film create(Film film) {
+    public FilmDto create(FilmDto filmDto) {
+        Film film = FilmMapper.toFilm(filmDto);
         Long id = insert(
                 INSERT_QUERY,
                 film.getName(),
@@ -59,11 +63,12 @@ public class FilmDbStorageImpl extends BaseDbStorage<Film> implements FilmStorag
                 film.getMpa().getId()
         );
         film.setId(id);
-        return film;
+        return FilmMapper.toDto(film);
     }
 
     @Override
-    public Film update(Film film) {
+    public FilmDto update(FilmDto filmDto) {
+        Film film = FilmMapper.toFilm(filmDto);
         update(UPDATE_QUERY,
                 film.getName(),
                 film.getDescription(),
@@ -71,12 +76,15 @@ public class FilmDbStorageImpl extends BaseDbStorage<Film> implements FilmStorag
                 film.getDuration(),
                 film.getMpa().getId(),
                 film.getId());
-        return film;
+        return FilmMapper.toDto(film);
     }
 
     @Override
-    public List<Film> getAll() {
-        return findMany(FIND_ALL_QUERY);
+    public List<FilmDto> getAll() {
+        return findMany(FIND_ALL_QUERY)
+                .stream()
+                .map(FilmMapper::toDto)
+                .toList();
     }
 
     @Override
@@ -90,22 +98,24 @@ public class FilmDbStorageImpl extends BaseDbStorage<Film> implements FilmStorag
     }
 
     @Override
-    public List<Film> getPopularFilms(int count) {
-        return findMany(FIND_POP_QUERY, count);
+    public List<FilmDto> getPopularFilms(int count) {
+        return findMany(FIND_POP_QUERY, count)
+                .stream()
+                .map(FilmMapper::toDto)
+                .toList();
     }
 
     @Override
-    public Optional<Film> findById(Long id) {
-        return findOne(FIND_BY_ID_QUERY, id);
+    public Optional<FilmDto> findById(Long id) {
+        return findOne(FIND_BY_ID_QUERY, id)
+                .map(FilmMapper::toDto);
     }
 
     @Override
-    public void saveGenres(Film film) {
-        if (film.getGenres() == null || film.getGenres().isEmpty()) {
-            return;
-        }
-        for (Genre genre : film.getGenres()) {
-            update(INSERT_FILM_GENRES_QUERY, film.getId(), genre.getId());
-        }
+    public void saveGenres(Long filmId, List<GenreDto> genres) {
+        jdbc.batchUpdate(INSERT_FILM_GENRES_QUERY, genres.stream()
+                .map(genre -> new Object[]{filmId, genre.id()})
+                .collect(Collectors.toList())
+        );
     }
 }

@@ -13,9 +13,9 @@ public class MpaMapper {
     }
 
     public static MpaDto toDto(Mpa mpa) {
-        MpaDto dto = new MpaDto();
-        dto.setId(mpa.getId());
-        dto.setName(mpa.getName());
-        return dto;
+        return new MpaDto(
+        mpa.getId(),
+        mpa.getName()
+        );
     }
 }

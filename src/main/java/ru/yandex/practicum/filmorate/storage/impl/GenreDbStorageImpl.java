@@ -4,10 +4,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.genre.Genre;
+import ru.yandex.practicum.filmorate.model.genre.GenreDto;
+import ru.yandex.practicum.filmorate.model.genre.GenreMapper;
 import ru.yandex.practicum.filmorate.storage.GenreStorage;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Repository
 public class GenreDbStorageImpl extends BaseDbStorage<Genre> implements GenreStorage {
@@ -31,13 +32,17 @@ public class GenreDbStorageImpl extends BaseDbStorage<Genre> implements GenreSto
     }
 
     @Override
-    public List<Genre> getAll() {
-        return findMany(FIND_ALL_QUERY);
+    public List<GenreDto> getAll() {
+        return findMany(FIND_ALL_QUERY)
+                .stream()
+                .map(GenreMapper::toDto)
+                .toList();
     }
 
     @Override
-    public Optional<Genre> getGenreById(Long id) {
-        return findOne(FIND_BY_ID_QUERY, id);
+    public Optional<GenreDto> getGenreById(Long id) {
+        return findOne(FIND_BY_ID_QUERY, id)
+                .map(GenreMapper::toDto);
     }
 
     @Override
@@ -46,8 +51,9 @@ public class GenreDbStorageImpl extends BaseDbStorage<Genre> implements GenreSto
     }
 
     @Override
-    public List<Genre> findGenresByFilmId(Long id) {
-        return findMany(FIND_BY_FILM_ID_QUERY, id);
+    public List<GenreDto> findGenresByFilmId(Long id) {
+        return findMany(FIND_BY_FILM_ID_QUERY, id)
+                .stream().map(GenreMapper::toDto)
+                .toList();
     }
-
 }

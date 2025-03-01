@@ -5,16 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.film.Film;
 import ru.yandex.practicum.filmorate.model.film.FilmDto;
-import ru.yandex.practicum.filmorate.model.film.FilmMapper;
-import ru.yandex.practicum.filmorate.model.genre.Genre;
+import ru.yandex.practicum.filmorate.model.genre.GenreDto;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.MpaStorage;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -23,6 +22,7 @@ public class FilmServiceImpl implements FilmService {
     private final FilmStorage filmStorage;
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
+    private static final LocalDate FILM_DATE = LocalDate.of(1895, 12, 28);
 
     public FilmServiceImpl(FilmStorage filmStorage, MpaStorage mpaStorage, GenreStorage genreStorage) {
         this.filmStorage = filmStorage;
@@ -32,64 +32,85 @@ public class FilmServiceImpl implements FilmService {
 
     @Override
     public List<FilmDto> getAll() {
-        List<Film> films = filmStorage.getAll();
-        for (Film film : films) {
-            List<Genre> genres = genreStorage.findGenresByFilmId(film.getId());
-            film.setGenres(genres);
-        }
-        log.info("Получение всех фильмов");
-        return films.stream()
-                .map(FilmMapper::toDto)
+        List<FilmDto> films = filmStorage.getAll();
+        List<Long> filmIds = films.stream()
+                .map(FilmDto::id)
                 .toList();
+        List<FilmDto> filmsWhithGenres = films.stream()
+                .map(film -> {
+                    List<GenreDto> genres = genreStorage.findGenresByFilmId(film.id());
+                    return new FilmDto(
+                            film.id(),
+                            film.name(),
+                            film.description(),
+                            film.releaseDate(),
+                            film.duration(),
+                            film.mpa(),
+                            genres
+                    );
+                })
+                .toList();
+        log.info("Получение всех фильмов");
+        return filmsWhithGenres;
     }
 
     @Override
-    public FilmDto create(Film film) {
-        if (film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
+    public FilmDto create(FilmDto filmDto) {
+        if (filmDto.releaseDate().isBefore(FILM_DATE)) {
             throw new ValidationException("Дата выхода не может быть раньше " +
                     "28.12.1895 - даты выхода первого в истории фильма");
         }
-        if (film.getMpa().getId() != null) {
-            if (!mpaStorage.checkMpa(film.getMpa().getId())) {
+        if (filmDto.mpa().getId() != null) {
+            if (!mpaStorage.checkMpa(filmDto.mpa().getId())) {
                 throw new NotFoundException("Рейтинг не найден");
             }
         }
-        Film createdFilm = filmStorage.create(film);
-        if (film.getGenres() != null) {
-            List<Genre> genres = film.getGenres()
+        List<GenreDto> genres = Collections.emptyList();
+        if (filmDto.genres() != null) {
+            genres = filmDto.genres()
                     .stream()
                     .distinct()
+                    .peek(g -> {
+                        if (!genreStorage.checkGenre(g.id())) {
+                            throw new NotFoundException("Жанр не найден");
+                        }
+                    })
                     .toList();
-            for (Genre g : genres) {
-                if (!genreStorage.checkGenre(g.getId())) {
-                    throw new NotFoundException("Жанр не найден");
-                }
-                createdFilm.setGenres(genres);
-            }
         }
-        filmStorage.saveGenres(createdFilm);
-        log.info("Создание фильма {}", film);
-        return FilmMapper.toDto(createdFilm);
+        FilmDto createdFilm = filmStorage.create(filmDto);
+        filmStorage.saveGenres(createdFilm.id(), genres);
+        List<GenreDto> actualGenres = genreStorage.findGenresByFilmId(createdFilm.id());
+        FilmDto filmWithGenres = new FilmDto(
+                createdFilm.id(),
+                createdFilm.name(),
+                createdFilm.description(),
+                createdFilm.releaseDate(),
+                createdFilm.duration(),
+                createdFilm.mpa(),
+                actualGenres
+        );
+        log.info("Создание фильма {}", filmWithGenres);
+        return filmWithGenres;
     }
 
     @Override
-    public FilmDto update(Film film) {
-        if (film.getMpa().getId() != null) {
-            if (!mpaStorage.checkMpa(film.getMpa().getId())) {
+    public FilmDto update(FilmDto filmDto) {
+        if (filmDto.mpa().getId() != null) {
+            if (!mpaStorage.checkMpa(filmDto.mpa().getId())) {
                 throw new NotFoundException("Рейтинг не найден");
             }
         }
-        Film updatedFilm = filmStorage.update(film);
-        if (film.getGenres() != null) {
-            List<Genre> genres = film.getGenres();
-            for (Genre g : genres) {
-                if (!genreStorage.checkGenre(g.getId())) {
+        FilmDto updatedFilm = filmStorage.update(filmDto);
+        if (filmDto.genres() != null) {
+            List<GenreDto> genres = filmDto.genres();
+            for (GenreDto g : genres) {
+                if (!genreStorage.checkGenre(g.id())) {
                     throw new NotFoundException("Жанр не найден");
                 }
             }
         }
-        log.info("Обновление фильма {}", film);
-        return FilmMapper.toDto(updatedFilm);
+        log.info("Обновление фильма {}", filmDto);
+        return updatedFilm;
     }
 
     @Override
@@ -107,25 +128,41 @@ public class FilmServiceImpl implements FilmService {
 
     @Override
     public List<FilmDto> getPopularFilms(int count) {
-        List<Film> films = filmStorage.getPopularFilms(count);
-        for (Film film : films) {
-            List<Genre> genres = genreStorage.findGenresByFilmId(film.getId());
-            film.setGenres(genres);
-        }
-        log.info("Получение списка популярных фильмов начиная с 1 и до {}", count);
-        return films.stream()
-                .map(FilmMapper::toDto)
+        List<FilmDto> films = filmStorage.getPopularFilms(count);
+        List<FilmDto> filmsWhithGenres = films.stream()
+                .map(film -> {
+                    List<GenreDto> genres = genreStorage.findGenresByFilmId(film.id());
+                    return new FilmDto(
+                            film.id(),
+                            film.name(),
+                            film.description(),
+                            film.releaseDate(),
+                            film.duration(),
+                            film.mpa(),
+                            genres
+                    );
+                })
                 .toList();
+        log.info("Получение списка популярных фильмов начиная с 1 и до {}", count);
+        return filmsWhithGenres;
     }
 
     @Override
     public FilmDto getFilmById(Long id) {
-        List<Genre> genres = genreStorage.findGenresByFilmId(id);
-        Film resultFilm = filmStorage.findById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм не найден"));
-        resultFilm.setGenres(genres);
+        FilmDto filmWithoutGenres = filmStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с " + id + " не найден"));
+        List<GenreDto> genres = genreStorage.findGenresByFilmId(id);
+        FilmDto resultFilm = new FilmDto(
+                filmWithoutGenres.id(),
+                filmWithoutGenres.name(),
+                filmWithoutGenres.description(),
+                filmWithoutGenres.releaseDate(),
+                filmWithoutGenres.duration(),
+                filmWithoutGenres.mpa(),
+                genres
+        );
         log.info("Получение фильма по id = {}", id);
-        return FilmMapper.toDto(resultFilm);
+        return resultFilm;
     }
 }
 

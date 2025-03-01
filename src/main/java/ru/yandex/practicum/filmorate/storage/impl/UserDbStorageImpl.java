@@ -4,6 +4,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.user.User;
+import ru.yandex.practicum.filmorate.model.user.UserDto;
+import ru.yandex.practicum.filmorate.model.user.UserMapper;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
@@ -39,7 +41,8 @@ public class UserDbStorageImpl extends BaseDbStorage<User> implements UserStorag
     }
 
     @Override
-    public User create(User user) {
+    public UserDto create(UserDto userDto) {
+        User user = UserMapper.toUser(userDto);
         long id = insert(
                 INSERT_QUERY,
                 user.getEmail(),
@@ -48,11 +51,12 @@ public class UserDbStorageImpl extends BaseDbStorage<User> implements UserStorag
                 user.getBirthday()
         );
         user.setId(id);
-        return user;
+        return UserMapper.toDto(user);
     }
 
     @Override
-    public User update(User user) {
+    public UserDto update(UserDto userDto) {
+        User user = UserMapper.toUser(userDto);
         update(
                 UPDATE_QUERY,
                 user.getEmail(),
@@ -61,17 +65,21 @@ public class UserDbStorageImpl extends BaseDbStorage<User> implements UserStorag
                 user.getBirthday(),
                 user.getId()
         );
-        return user;
+        return UserMapper.toDto(user);
     }
 
     @Override
-    public Optional<User> findById(Long id) {
-        return findOne(FIND_BY_ID_QUERY, id);
+    public Optional<UserDto> findById(Long id) {
+        return findOne(FIND_BY_ID_QUERY, id)
+                .map(UserMapper::toDto);
     }
 
     @Override
-    public List<User> getAll() {
-        return findMany(FIND_ALL_QUERY);
+    public List<UserDto> getAll() {
+        return findMany(FIND_ALL_QUERY)
+                .stream()
+                .map(UserMapper::toDto)
+                .toList();
     }
 
     @Override
@@ -85,12 +93,18 @@ public class UserDbStorageImpl extends BaseDbStorage<User> implements UserStorag
     }
 
     @Override
-    public List<User> getFriends(Long id) {
-        return findMany(FIND_FRIENDS_QUERY, id);
+    public List<UserDto> getFriends(Long id) {
+        return findMany(FIND_FRIENDS_QUERY, id)
+                .stream()
+                .map(UserMapper::toDto)
+                .toList();
     }
 
     @Override
-    public List<User> getCommonFriends(Long id, Long friendId) {
-        return findMany(FIND_COMMON_QUERY, id, friendId);
+    public List<UserDto> getCommonFriends(Long id, Long friendId) {
+        return findMany(FIND_COMMON_QUERY, id, friendId)
+                .stream()
+                .map(UserMapper::toDto)
+                .toList();
     }
 }
