@@ -4,51 +4,50 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.user.UserDto;
 import ru.yandex.practicum.filmorate.service.UserService;
 
-import java.util.Collection;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Slf4j
 @RestController
 @RequestMapping("/users")
 public class UserController {
-
     private final UserService userService;
 
     @GetMapping
-    public Collection<User> findAll() {
+    public List<UserDto> findAll() {
         return userService.getAll();
     }
 
     @PostMapping
-    public User create(@Valid @RequestBody User user) {
-        return userService.create(user);
+    public UserDto create(@Valid @RequestBody UserDto userDto) {
+        return userService.create(userDto);
     }
 
     @PutMapping
-    public User update(@Valid @RequestBody User user) {
-        return userService.update(user);
+    public UserDto update(@Valid @RequestBody UserDto userDto) {
+        return userService.update(userDto);
     }
 
     @PutMapping("/{id}/friends/{friendId}")
-    public User addFriend(@PathVariable Long id, @PathVariable Long friendId) {
-        return userService.addFriend(id, friendId);
+    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        userService.addFriend(id, friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
-    public User deleteFriend(@PathVariable Long id, @PathVariable Long friendId) {
-        return userService.deleteFriend(id, friendId);
+    public void deleteFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        userService.deleteFriend(id, friendId);
     }
 
     @GetMapping("/{id}/friends")
-    public Collection<User> getFriends(@PathVariable Long id) {
+    public List<UserDto> getFriends(@PathVariable Long id) {
         return userService.getFriends(id);
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")
-    public Collection<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+    public List<UserDto> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
         return userService.getCommonFriends(id, otherId);
     }
 }
